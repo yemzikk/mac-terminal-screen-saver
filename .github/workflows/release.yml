@@ -1,0 +1,25 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Build and bundle
+        run: make bundle
+      
+      - name: Zip artifact
+        run: cd build && zip -r TerminalScreenSaver.saver.zip TerminalScreenSaver.saver/
+      
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: build/TerminalScreenSaver.saver.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

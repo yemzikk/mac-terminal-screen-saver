@@ -35,6 +35,20 @@ A macOS screen saver that fills your screen with animated terminal windows runni
 - macOS 12.0 (Monterey) or later
 - Xcode Command Line Tools (`xcode-select --install`)
 
+## Installation
+
+### Easiest: Download Pre-built Release
+
+1. Go to [Releases](https://github.com/yemzikk/mac-terminal-screen-saver/releases)
+2. Download `TerminalScreenSaver.saver.zip` from the latest release
+3. Unzip the file
+4. Double-click `TerminalScreenSaver.saver`
+5. Click **Install** when prompted by System Preferences
+
+The screensaver will be installed to `~/Library/Screen Savers/`
+
+### Build from Source
+
 ## Build & Install
 
 ```bash
