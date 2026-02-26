@@ -40,9 +40,11 @@ A macOS screen saver that fills your screen with animated terminal windows runni
 ### Easiest: Download Pre-built Release
 
 1. Go to [Releases](https://github.com/yemzikk/mac-terminal-screen-saver/releases)
-2. Download `TerminalScreenSaver.saver.zip` from the latest release
-3. Unzip the file
-4. Double-click `TerminalScreenSaver.saver`
+2. Download either:
+   - **TerminalScreenSaver.dmg** — macOS disk image (recommended, same as standard app installers)
+   - **TerminalScreenSaver.saver.zip** — compressed bundle
+3. If you downloaded the DMG, double-click it and drag `TerminalScreenSaver.saver` to your screensaver folder, or just double-click the bundle
+4. If you downloaded the ZIP, unzip and double-click `TerminalScreenSaver.saver`
 5. Click **Install** when prompted by System Preferences
 
 The screensaver will be installed to `~/Library/Screen Savers/`
