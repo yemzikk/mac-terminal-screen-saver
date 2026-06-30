@@ -1,0 +1,883 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Terminal Screen Saver — animated fake-terminal screensaver for macOS</title>
+<meta name="description" content="A macOS screen saver that fills your idle screen with living terminal windows running realistic — but fake — commands: git, docker, kubernetes, npm, ML training and more. Free & open source.">
+<meta name="theme-color" content="#060a06">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%96%A5%EF%B8%8F%3C/text%3E%3C/svg%3E">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Terminal Screen Saver for macOS">
+<meta property="og:description" content="Fill your idle Mac with living terminal windows running realistic fake commands. Free & open source.">
+<meta property="og:url" content="https://yemzikk.github.io/mac-terminal-screen-saver/">
+<meta property="og:image" content="https://yemzikk.github.io/mac-terminal-screen-saver/social-preview.png">
+<meta property="og:image:width" content="1280">
+<meta property="og:image:height" content="640">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://yemzikk.github.io/mac-terminal-screen-saver/social-preview.png">
+<style>
+  html, body { margin: 0; padding: 0; }
+  img { max-width: 100%; }
+</style>
+</head>
+<body>
+<style>
+  :root {
+    --bg: #060a06;
+    --bg-2: #0a0f0a;
+    --panel: #0b120b;
+    --panel-2: #0e160e;
+    --phosphor: #2bff87;
+    --phosphor-soft: #58ffa0;
+    --phosphor-dim: #1c8f4e;
+    --text: #9fe0b4;
+    --muted: #5e7d66;
+    --white: #e2f3e6;
+    --amber: #ffb02e;
+    --amber-soft: #ffc766;
+    --amber-dim: #9a6410;
+    --border: #163a20;
+    --border-soft: #0f2916;
+    --mono: "SF Mono", "SFMono-Regular", ui-monospace, "Menlo", "Cascadia Code", "Consolas", monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    --fs-hero: clamp(2.1rem, 6.2vw, 4.1rem);
+    --fs-h2: clamp(1.45rem, 3.6vw, 2.15rem);
+    --wrap: 1080px;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background:
+      radial-gradient(120% 80% at 50% -10%, #0c1a0f 0%, var(--bg) 55%),
+      var(--bg);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 16px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    letter-spacing: 0.01em;
+    overflow-x: hidden;
+  }
+
+  ::selection { background: var(--phosphor); color: #041007; }
+
+  a { color: var(--phosphor); text-decoration: none; }
+  a:focus-visible, button:focus-visible {
+    outline: 2px solid var(--phosphor);
+    outline-offset: 3px;
+    border-radius: 2px;
+  }
+
+  .wrap { max-width: var(--wrap); margin-inline: auto; padding-inline: 24px; }
+
+  /* ---- CRT overlays ---- */
+  .crt-scan, .crt-vignette {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 900;
+  }
+  .crt-scan {
+    background: repeating-linear-gradient(
+      to bottom,
+      rgba(0,0,0,0) 0px,
+      rgba(0,0,0,0) 2px,
+      rgba(0,0,0,0.16) 3px,
+      rgba(0,0,0,0) 4px
+    );
+    mix-blend-mode: multiply;
+    opacity: 0.55;
+  }
+  .crt-vignette {
+    background: radial-gradient(120% 120% at 50% 45%, rgba(0,0,0,0) 55%, rgba(0,0,0,0.55) 100%);
+  }
+
+  /* ---- Nav ---- */
+  nav {
+    position: sticky;
+    top: 0;
+    z-index: 800;
+    backdrop-filter: blur(8px);
+    background: rgba(6,10,6,0.72);
+    border-bottom: 1px solid var(--border-soft);
+  }
+  .nav-in {
+    max-width: var(--wrap);
+    margin-inline: auto;
+    padding: 14px 24px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+  }
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    font-weight: 600;
+    color: var(--white);
+    letter-spacing: 0.02em;
+  }
+  .brand .dot { color: var(--phosphor); text-shadow: 0 0 10px var(--phosphor); }
+  .nav-links {
+    margin-left: auto;
+    display: flex;
+    gap: 22px;
+    align-items: center;
+    font-size: 0.85rem;
+  }
+  .nav-links a { color: var(--muted); transition: color .15s; }
+  .nav-links a:hover { color: var(--phosphor); }
+  .nav-coffee {
+    color: var(--amber) !important;
+    border: 1px solid var(--amber-dim);
+    padding: 5px 12px;
+    border-radius: 5px;
+    transition: background .15s, box-shadow .15s;
+  }
+  .nav-coffee:hover { background: rgba(255,176,46,0.1); box-shadow: 0 0 16px rgba(255,176,46,0.25); }
+  @media (max-width: 680px) { .nav-links .hide-sm { display: none; } }
+
+  /* ---- Hero ---- */
+  .hero { padding-block: clamp(48px, 9vw, 96px) 40px; text-align: center; }
+  .eyebrow {
+    font-size: 0.75rem;
+    letter-spacing: 0.32em;
+    text-transform: uppercase;
+    color: var(--phosphor-dim);
+    margin-bottom: 22px;
+  }
+  .eyebrow::before { content: "// "; opacity: 0.6; }
+  h1 {
+    font-size: var(--fs-hero);
+    line-height: 1.05;
+    font-weight: 700;
+    color: var(--white);
+    margin: 0 auto 22px;
+    max-width: 16ch;
+    text-wrap: balance;
+    text-shadow: 0 0 28px rgba(43,255,135,0.18);
+  }
+  h1 .glow { color: var(--phosphor); text-shadow: 0 0 22px rgba(43,255,135,0.55); }
+  .lede {
+    max-width: 60ch;
+    margin: 0 auto 34px;
+    color: var(--text);
+    font-size: 1.02rem;
+    line-height: 1.7;
+  }
+  .cta-row {
+    display: flex;
+    gap: 14px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+  }
+  .btn {
+    font-family: var(--mono);
+    font-size: 0.95rem;
+    padding: 13px 22px;
+    border-radius: 7px;
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: transform .12s, box-shadow .15s, background .15s;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .btn-primary {
+    background: var(--phosphor);
+    color: #041007;
+    font-weight: 600;
+    box-shadow: 0 0 22px rgba(43,255,135,0.28);
+  }
+  .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 0 32px rgba(43,255,135,0.5); }
+  .btn-ghost { border-color: var(--border); color: var(--text); }
+  .btn-ghost:hover { border-color: var(--phosphor-dim); color: var(--phosphor); }
+  .meta-line {
+    color: var(--muted);
+    font-size: 0.78rem;
+    margin-top: 8px;
+    letter-spacing: 0.04em;
+  }
+
+  /* ---- Terminal window ---- */
+  .stage {
+    position: relative;
+    margin: 56px auto 0;
+    max-width: 760px;
+    padding-bottom: 34px;
+  }
+  .term {
+    position: relative;
+    border-radius: 11px;
+    border: 1px solid var(--border);
+    background: var(--panel);
+    box-shadow: 0 30px 80px -30px rgba(0,0,0,0.9), 0 0 0 1px rgba(43,255,135,0.04);
+    overflow: hidden;
+    text-align: left;
+  }
+  .term-glow {
+    position: absolute;
+    inset: -40px;
+    background: radial-gradient(50% 50% at 50% 40%, rgba(43,255,135,0.16), rgba(43,255,135,0) 70%);
+    z-index: -1;
+    filter: blur(6px);
+  }
+  .term.back {
+    position: absolute;
+    top: -26px;
+    right: -18px;
+    left: 62px;
+    z-index: 0;
+    opacity: 0.42;
+    filter: saturate(0.7);
+    transform: rotate(0.4deg);
+  }
+  .term.front { position: relative; z-index: 2; }
+  @media (max-width: 620px) { .term.back { display: none; } }
+
+  .titlebar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    background: linear-gradient(#0f1a11, #0b140c);
+    border-bottom: 1px solid var(--border-soft);
+  }
+  .lights { display: flex; gap: 7px; }
+  .light { width: 12px; height: 12px; border-radius: 50%; }
+  .light.r { background: #ff5f57; }
+  .light.y { background: #febc2e; }
+  .light.g { background: #28c840; }
+  .title {
+    flex: 1;
+    text-align: center;
+    font-size: 0.78rem;
+    color: var(--muted);
+    letter-spacing: 0.03em;
+    margin-right: 42px;
+  }
+  .screen {
+    padding: 16px 18px 20px;
+    height: 360px;
+    overflow: hidden;
+    font-size: 0.86rem;
+    line-height: 1.5;
+  }
+  .screen.short { height: 220px; }
+  .line { white-space: pre-wrap; word-break: break-word; }
+  .line .p { color: var(--phosphor-soft); }
+  .line .cmd { color: var(--white); }
+  .line.out { color: var(--phosphor-dim); }
+  .cursor {
+    display: inline-block;
+    width: 0.6em;
+    height: 1.05em;
+    background: var(--phosphor);
+    vertical-align: text-bottom;
+    margin-left: 1px;
+    box-shadow: 0 0 8px var(--phosphor);
+    animation: blink 1.06s steps(1) infinite;
+  }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  /* ---- Section scaffolding ---- */
+  section { position: relative; z-index: 1; }
+  .band { padding-block: clamp(56px, 9vw, 96px); border-top: 1px solid var(--border-soft); }
+  .sec-head { margin-bottom: 40px; }
+  .sec-tag {
+    font-size: 0.75rem;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: var(--phosphor-dim);
+    display: block;
+    margin-bottom: 12px;
+  }
+  h2 {
+    font-size: var(--fs-h2);
+    color: var(--white);
+    margin: 0 0 10px;
+    font-weight: 700;
+    text-wrap: balance;
+  }
+  .sec-sub { color: var(--muted); max-width: 62ch; margin: 0; font-size: 0.95rem; }
+
+  /* ---- Features ---- */
+  .feat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  @media (max-width: 860px) { .feat-grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 560px) { .feat-grid { grid-template-columns: 1fr; } }
+  .feat {
+    border: 1px solid var(--border-soft);
+    border-radius: 9px;
+    padding: 20px 18px;
+    background: linear-gradient(180deg, var(--panel), var(--bg-2));
+    transition: border-color .18s, transform .18s;
+  }
+  .feat:hover { border-color: var(--border); transform: translateY(-3px); }
+  .feat .k {
+    color: var(--phosphor);
+    font-size: 0.78rem;
+    letter-spacing: 0.05em;
+    margin-bottom: 9px;
+  }
+  .feat .k::before { content: "▸ "; color: var(--phosphor-dim); }
+  .feat h3 { margin: 0 0 6px; font-size: 1rem; color: var(--white); font-weight: 600; }
+  .feat p { margin: 0; font-size: 0.86rem; color: var(--muted); line-height: 1.55; }
+
+  /* ---- Categories ---- */
+  .cats { display: flex; flex-wrap: wrap; gap: 10px; }
+  .cat {
+    border: 1px solid var(--border-soft);
+    border-radius: 999px;
+    padding: 7px 15px;
+    font-size: 0.82rem;
+    color: var(--text);
+    background: var(--panel);
+  }
+  .cat b { color: var(--phosphor); font-weight: 600; }
+
+  /* ---- Themes ---- */
+  .theme-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+  @media (max-width: 820px) { .theme-grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 460px) { .theme-grid { grid-template-columns: 1fr; } }
+  .swatch {
+    border-radius: 9px;
+    overflow: hidden;
+    border: 1px solid var(--border-soft);
+  }
+  .swatch .mini {
+    padding: 12px 13px 15px;
+    font-size: 0.74rem;
+    line-height: 1.5;
+    min-height: 96px;
+  }
+  .swatch .mini .mp { opacity: 0.95; }
+  .swatch .mini .mo { opacity: 0.72; }
+  .swatch .name {
+    padding: 9px 13px;
+    font-size: 0.78rem;
+    color: var(--text);
+    border-top: 1px solid var(--border-soft);
+    background: var(--panel);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .swatch .name .chip { width: 10px; height: 10px; border-radius: 50%; }
+
+  /* ---- Install ---- */
+  .install-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  @media (max-width: 900px) { .install-grid { grid-template-columns: 1fr; } }
+  .method {
+    border: 1px solid var(--border-soft);
+    border-radius: 10px;
+    background: linear-gradient(180deg, var(--panel), var(--bg-2));
+    padding: 20px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .method.rec { border-color: var(--phosphor-dim); box-shadow: 0 0 28px -12px rgba(43,255,135,0.4); }
+  .method .mhead { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+  .method h3 { margin: 0; font-size: 0.98rem; color: var(--white); }
+  .badge {
+    font-size: 0.66rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #041007;
+    background: var(--phosphor);
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-weight: 700;
+  }
+  .method p { margin: 0; font-size: 0.83rem; color: var(--muted); }
+  .code {
+    position: relative;
+    background: #030603;
+    border: 1px solid var(--border-soft);
+    border-radius: 7px;
+    padding: 13px 14px;
+    font-size: 0.8rem;
+    color: var(--phosphor-soft);
+    overflow-x: auto;
+    line-height: 1.7;
+  }
+  .code .cmt { color: var(--muted); }
+  .code .pr { color: var(--phosphor-dim); user-select: none; }
+  .copy {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    font-family: var(--mono);
+    font-size: 0.68rem;
+    color: var(--muted);
+    background: var(--panel-2);
+    border: 1px solid var(--border-soft);
+    border-radius: 5px;
+    padding: 3px 8px;
+    cursor: pointer;
+    transition: color .15s, border-color .15s;
+  }
+  .copy:hover { color: var(--phosphor); border-color: var(--phosphor-dim); }
+  .note {
+    margin-top: 26px;
+    border-left: 2px solid var(--amber-dim);
+    padding: 4px 0 4px 16px;
+    color: var(--muted);
+    font-size: 0.83rem;
+    line-height: 1.6;
+  }
+  .note b { color: var(--amber-soft); font-weight: 600; }
+  .note code {
+    color: var(--amber-soft);
+    background: rgba(255,176,46,0.08);
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+
+  /* ---- Coffee ---- */
+  .coffee { border-top: 1px solid var(--border-soft); }
+  .coffee-term {
+    max-width: 620px;
+    margin-inline: auto;
+    border: 1px solid var(--amber-dim);
+    border-radius: 11px;
+    overflow: hidden;
+    background: #0f0a02;
+    box-shadow: 0 0 50px -18px rgba(255,176,46,0.4);
+  }
+  .coffee-term .titlebar {
+    background: linear-gradient(#1a1204, #120c02);
+    border-bottom-color: rgba(255,176,46,0.14);
+  }
+  .coffee-term .title { color: var(--amber-dim); }
+  .coffee-body { padding: 26px 26px 30px; text-align: center; }
+  .coffee-body .cprompt { color: var(--amber-dim); font-size: 0.82rem; margin-bottom: 16px; text-align: left; }
+  .coffee-body .cprompt b { color: var(--amber-soft); font-weight: 500; }
+  .coffee-body h2 { color: var(--amber-soft); text-shadow: 0 0 26px rgba(255,176,46,0.3); }
+  .coffee-body p { color: #cbb488; max-width: 46ch; margin: 0 auto 24px; font-size: 0.92rem; }
+  .btn-coffee {
+    background: var(--amber);
+    color: #1a1000;
+    font-weight: 700;
+    box-shadow: 0 0 26px rgba(255,176,46,0.35);
+    font-size: 1rem;
+    padding: 14px 26px;
+  }
+  .btn-coffee:hover { transform: translateY(-2px); box-shadow: 0 0 40px rgba(255,176,46,0.6); }
+  .sponsor-alt { margin-top: 16px; font-size: 0.82rem; color: var(--amber-dim); }
+  .sponsor-alt a { color: var(--amber-soft); border-bottom: 1px dashed rgba(255,199,102,0.4); }
+  .sponsor-alt a:hover { border-bottom-color: var(--amber-soft); }
+
+  /* ---- Footer ---- */
+  footer {
+    border-top: 1px solid var(--border-soft);
+    padding-block: 40px;
+    color: var(--muted);
+    font-size: 0.82rem;
+  }
+  .foot-in { display: flex; flex-wrap: wrap; gap: 16px 28px; align-items: center; justify-content: space-between; }
+  .foot-links { display: flex; gap: 22px; flex-wrap: wrap; }
+  .foot-links a { color: var(--muted); }
+  .foot-links a:hover { color: var(--phosphor); }
+  .foot-fine { font-family: var(--sans); letter-spacing: 0; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .cursor { animation: none; }
+    .btn:hover, .feat:hover { transform: none; }
+    * { scroll-behavior: auto; }
+  }
+  html { scroll-behavior: smooth; }
+</style>
+
+<div class="crt-scan"></div>
+<div class="crt-vignette"></div>
+
+<nav>
+  <div class="nav-in">
+    <span class="brand"><span class="dot">▮</span>&nbsp;terminal&#8209;screensaver</span>
+    <div class="nav-links">
+      <a href="#features" class="hide-sm">features</a>
+      <a href="#themes" class="hide-sm">themes</a>
+      <a href="#install">install</a>
+      <a href="https://github.com/yemzikk/mac-terminal-screen-saver">github</a>
+      <a href="https://buymeacoffee.com/yemzikk" class="nav-coffee">☕ coffee</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="wrap">
+    <p class="eyebrow">macOS screen saver &middot; universal binary</p>
+    <h1>Look impossibly busy while you're <span class="glow">away from the keyboard</span>.</h1>
+    <p class="lede">
+      Terminal Screen Saver fills your idle Mac with living terminal windows running
+      realistic — but entirely fake — commands. Git logs, Docker builds, npm installs,
+      Kubernetes rollouts, ML training runs, and a dozen more, typed out in real time.
+    </p>
+    <div class="cta-row">
+      <a href="#install" class="btn btn-primary">$ make install</a>
+      <a href="https://github.com/yemzikk/mac-terminal-screen-saver" class="btn btn-ghost">View source on GitHub →</a>
+    </div>
+    <p class="meta-line">Free &amp; open source (MIT) &middot; macOS 12+ &middot; Apple Silicon &amp; Intel</p>
+
+    <div class="stage">
+      <div class="term back">
+        <div class="titlebar">
+          <div class="lights"><span class="light r"></span><span class="light y"></span><span class="light g"></span></div>
+          <div class="title">python — train.py</div>
+        </div>
+        <div class="screen short" id="screen-back"></div>
+      </div>
+      <div class="term front">
+        <div class="term-glow"></div>
+        <div class="titlebar">
+          <div class="lights"><span class="light r"></span><span class="light y"></span><span class="light g"></span></div>
+          <div class="title" id="front-title">bash — ~/webapp</div>
+        </div>
+        <div class="screen" id="screen-front"></div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<section id="features" class="band">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="sec-tag">$ ls ./features</span>
+      <h2>Built to look exactly like the real thing</h2>
+      <p class="sec-sub">Every detail borrows from a genuine terminal — the timing, the chrome, the phosphor. It's convincing enough that people will ask what you're compiling.</p>
+    </div>
+    <div class="feat-grid">
+      <div class="feat">
+        <div class="k">layout</div>
+        <h3>1–8 live windows</h3>
+        <p>Arranged in automatic tiled grids, overlapping cascades, or a mixed floating layout — reshuffled each time it starts.</p>
+      </div>
+      <div class="feat">
+        <div class="k">animation</div>
+        <h3>Typewriter timing</h3>
+        <p>Commands are typed character by character with natural hesitation, then output streams in line by line before the session loops.</p>
+      </div>
+      <div class="feat">
+        <div class="k">effects</div>
+        <h3>Full CRT treatment</h3>
+        <p>Scanlines, phosphor glow, subtle power-flicker, and a soft vignette — the whole retro-monitor package, all toggleable.</p>
+      </div>
+      <div class="feat">
+        <div class="k">themes</div>
+        <h3>8 color themes</h3>
+        <p>From Hack Green to Amber CRT to Dracula. Pick one, or let every window randomize its own palette.</p>
+      </div>
+      <div class="feat">
+        <div class="k">chrome</div>
+        <h3>Real macOS windows</h3>
+        <p>Title bars, traffic-light buttons, rounded corners, drop shadows, adjustable opacity — it sits naturally on your desktop.</p>
+      </div>
+      <div class="feat">
+        <div class="k">settings</div>
+        <h3>Live control panel</h3>
+        <p>Tune count, font size, typing speed, and every effect right inside System Settings — with a real-time preview.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="sec-tag">$ cat ./sessions</span>
+      <h2>Fourteen kinds of fake work</h2>
+      <p class="sec-sub">Each window pulls from a deep database of realistic sessions with randomized hashes, ports, timings, and file names — plus a few hidden easter eggs.</p>
+    </div>
+    <div class="cats" id="cats"></div>
+  </div>
+</section>
+
+<section id="themes" class="band">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="sec-tag">$ theme --list</span>
+      <h2>Eight moods for your idle screen</h2>
+      <p class="sec-sub">Classic phosphor, warm amber, or modern editor palettes — mix and match, or randomize per window.</p>
+    </div>
+    <div class="theme-grid" id="themes"></div>
+  </div>
+</section>
+
+<section id="install" class="band">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="sec-tag">$ ./install</span>
+      <h2>Running in under a minute</h2>
+      <p class="sec-sub">Build it yourself for the smoothest install, tap it with Homebrew, or grab a pre-built release.</p>
+    </div>
+    <div class="install-grid">
+      <div class="method rec">
+        <div class="mhead"><h3>Build from source</h3><span class="badge">recommended</span></div>
+        <p>No Gatekeeper prompt — locally built bundles aren't quarantined. Needs Xcode Command Line Tools.</p>
+        <div class="code"><button class="copy" type="button">copy</button><span class="pr">$ </span>git clone https://github.com/yemzikk/mac-terminal-screen-saver.git
+<span class="pr">$ </span>cd mac-terminal-screen-saver
+<span class="pr">$ </span>make install</div>
+      </div>
+      <div class="method">
+        <div class="mhead"><h3>Homebrew tap</h3></div>
+        <p>One command once the tap is published. <code style="color:var(--phosphor-dim)">--no-quarantine</code> is needed (ad-hoc signed, not notarized).</p>
+        <div class="code"><button class="copy" type="button">copy</button><span class="pr">$ </span>brew tap yemzikk/tap
+<span class="pr">$ </span>brew install --cask \
+    --no-quarantine terminal-screensaver</div>
+      </div>
+      <div class="method">
+        <div class="mhead"><h3>Download release</h3></div>
+        <p>Grab the <b style="color:var(--text)">.dmg</b> or <b style="color:var(--text)">.zip</b>, open the bundle, then click Install.</p>
+        <div class="code"><button class="copy" type="button">copy</button><span class="cmt"># after downloading:</span>
+<span class="pr">$ </span>xattr -dr com.apple.quarantine \
+    ~/Downloads/TerminalScreenSaver.saver</div>
+      </div>
+    </div>
+    <p class="note">
+      <b>Heads up on Gatekeeper.</b> Released bundles are ad-hoc signed but not notarized (no paid
+      Apple Developer account), so downloaded copies are quarantined by macOS. Clear it with the
+      <code>xattr</code> command above, or just build from source to skip it entirely. Then open
+      <b>System Settings → Screen Saver</b> and pick <b>Terminal Screen Saver</b>.
+    </p>
+  </div>
+</section>
+
+<section class="band coffee">
+  <div class="wrap">
+    <div class="coffee-term">
+      <div class="titlebar">
+        <div class="lights"><span class="light r"></span><span class="light y"></span><span class="light g"></span></div>
+        <div class="title">zsh — ~/support</div>
+      </div>
+      <div class="coffee-body">
+        <div class="cprompt"><b>yemzikk@macbook</b>:~$ ./say_thanks --with coffee</div>
+        <h2>Enjoying the view?</h2>
+        <p>This was built in spare evenings and given away for free. If it made your Mac look a little
+           cooler, a coffee keeps the commits coming.</p>
+        <a href="https://buymeacoffee.com/yemzikk" class="btn btn-coffee">☕ Buy me a coffee</a>
+        <div class="sponsor-alt">&hellip; or <a href="https://github.com/sponsors/yemzikk">sponsor the project on GitHub</a></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap foot-in">
+    <span class="brand"><span class="dot">▮</span>&nbsp;terminal&#8209;screensaver</span>
+    <div class="foot-links">
+      <a href="https://github.com/yemzikk/mac-terminal-screen-saver">GitHub</a>
+      <a href="https://github.com/yemzikk/mac-terminal-screen-saver/releases">Releases</a>
+      <a href="#install">Install</a>
+      <a href="https://github.com/sponsors/yemzikk">Sponsor</a>
+      <a href="https://buymeacoffee.com/yemzikk">Buy me a coffee</a>
+    </div>
+    <span class="foot-fine">MIT licensed &middot; made by yemzikk</span>
+  </div>
+</footer>
+
+<script>
+  (function () {
+    "use strict";
+    var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    // ---------- Command categories ----------
+    var cats = [
+      ["git", "status · log · diff"],
+      ["docker", "ps · build · logs"],
+      ["npm", "install · build · test"],
+      ["python", "pip · training runs"],
+      ["kubectl", "pods · rollout"],
+      ["ssh", "connect · systemctl"],
+      ["cargo", "build · test"],
+      ["aws", "s3 · cloudformation"],
+      ["psql", "queries · explain"],
+      ["system", "htop · df · uptime"],
+      ["network", "ping · curl · netstat"],
+      ["files", "ls · find · tar"],
+      ["ps", "aux · lsof"],
+      ["easter eggs", "if you look closely"]
+    ];
+    var catWrap = document.getElementById("cats");
+    cats.forEach(function (c) {
+      var el = document.createElement("span");
+      el.className = "cat";
+      var b = document.createElement("b");
+      b.textContent = c[0];
+      el.appendChild(b);
+      el.appendChild(document.createTextNode("  " + c[1]));
+      catWrap.appendChild(el);
+    });
+
+    // ---------- Theme swatches ----------
+    var themes = [
+      { name: "Hack Green",     bg: "#04120a", prompt: "#33ffb0", cmd: "#5bff5b", out: "#00c853" },
+      { name: "Amber CRT",      bg: "#140b00", prompt: "#ffcc33", cmd: "#ffbe4d", out: "#d98f00" },
+      { name: "Classic White",  bg: "#0d0d14", prompt: "#9ecbff", cmd: "#ffffff", out: "#c9c9c9" },
+      { name: "Solarized Dark", bg: "#002b36", prompt: "#268bd2", cmd: "#93a100", out: "#839496" },
+      { name: "Monokai",        bg: "#282828", prompt: "#f92672", cmd: "#a6e22e", out: "#f8f8f2" },
+      { name: "Dracula",        bg: "#282a36", prompt: "#bd93f9", cmd: "#50fa7b", out: "#f8f8f2" },
+      { name: "Nord",           bg: "#2e3440", prompt: "#81a1c1", cmd: "#88c0d0", out: "#d8dee9" },
+      { name: "Blue Pulse",     bg: "#00051f", prompt: "#66e5ff", cmd: "#4dd8ff", out: "#2699e6" }
+    ];
+    var tWrap = document.getElementById("themes");
+    themes.forEach(function (t) {
+      var card = document.createElement("div");
+      card.className = "swatch";
+      var mini = document.createElement("div");
+      mini.className = "mini";
+      mini.style.background = t.bg;
+      mini.innerHTML =
+        '<div class="mp" style="color:' + t.prompt + '">~/app$ <span style="color:' + t.cmd + '">git status</span></div>' +
+        '<div class="mo" style="color:' + t.out + '">On branch main</div>' +
+        '<div class="mo" style="color:' + t.out + '">nothing to commit,</div>' +
+        '<div class="mo" style="color:' + t.out + '">working tree clean</div>';
+      var name = document.createElement("div");
+      name.className = "name";
+      var label = document.createElement("span");
+      label.textContent = t.name;
+      var chip = document.createElement("span");
+      chip.className = "chip";
+      chip.style.background = t.cmd;
+      chip.style.boxShadow = "0 0 8px " + t.cmd;
+      name.appendChild(label);
+      name.appendChild(chip);
+      card.appendChild(mini);
+      card.appendChild(name);
+      tWrap.appendChild(card);
+    });
+
+    // ---------- Copy buttons ----------
+    document.querySelectorAll(".code").forEach(function (block) {
+      var btn = block.querySelector(".copy");
+      if (!btn) return;
+      btn.addEventListener("click", function () {
+        var text = block.innerText.replace(/^\s*copy\s*/, "").replace(/^\$ /gm, "").trim();
+        navigator.clipboard.writeText(text).then(function () {
+          var prev = btn.textContent;
+          btn.textContent = "copied ✓";
+          setTimeout(function () { btn.textContent = prev; }, 1400);
+        });
+      });
+    });
+
+    // ---------- Live terminal engine ----------
+    var frontTitle = document.getElementById("front-title");
+    var script = [
+      {
+        title: "bash — ~/webapp",
+        prompt: "dev@macbook:~/webapp$",
+        cmd: "git status",
+        out: ["On branch main", "Your branch is up to date with 'origin/main'.", "",
+              "Changes not staged for commit:", "\tmodified:   src/auth.ts", "\tmodified:   api/routes.py", ""]
+      },
+      {
+        title: "docker — api",
+        prompt: "dev@server:~/api$",
+        cmd: "docker build -t api:2.4.0 .",
+        out: ["[+] Building 42.0s (12/12) FINISHED", " => [4/7] RUN npm ci --only=production",
+              " => [6/7] RUN npm run build", " => exporting to image",
+              "Successfully tagged api:2.4.0", ""]
+      },
+      {
+        title: "kubectl — production",
+        prompt: "dev@workstation:~$",
+        cmd: "kubectl rollout status deploy/api",
+        out: ["Waiting for rollout: 2 of 3 updated...", "Waiting for rollout: 1 old replica pending...",
+              'deployment "api" successfully rolled out', ""]
+      },
+      {
+        title: "cargo — parser",
+        prompt: "dev@machine:~/parser$",
+        cmd: "cargo test",
+        out: ["   Compiling parser v0.7.2", "running 24 tests", "test parse_valid_input ... ok",
+              "test concurrent_access ... ok", "test result: ok. 24 passed; 0 failed", ""]
+      }
+    ];
+
+    var back = document.getElementById("screen-back");
+    var backLines = ["(venv) dev@ml-box:~/ml$ python train.py", "[INFO] Loading dataset...",
+      "[INFO] Dataset: 240000 samples (80% train)", "[INFO] Model: ResNet50 · 25M params", "",
+      "Epoch [12/50]", "  Train Loss: 0.1842 | Train Acc: 0.9471",
+      "  Val Loss:   0.2013 | Val Acc:   0.9388", "[INFO] Checkpoint saved."];
+    backLines.forEach(function (l, i) {
+      var d = document.createElement("div");
+      d.className = "line" + (i === 0 ? "" : " out");
+      d.textContent = l;
+      back.appendChild(d);
+    });
+
+    var front = document.getElementById("screen-front");
+
+    function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+    function rand(a, b) { return a + Math.random() * (b - a); }
+    function addLine(cls) {
+      var d = document.createElement("div");
+      d.className = "line" + (cls ? " " + cls : "");
+      front.appendChild(d);
+      return d;
+    }
+    function trim() { while (front.children.length > 40) front.removeChild(front.firstChild); }
+
+    function renderStatic() {
+      var s = script[0];
+      frontTitle.textContent = s.title;
+      var line = addLine();
+      var p = document.createElement("span"); p.className = "p"; p.textContent = s.prompt + " ";
+      var c = document.createElement("span"); c.className = "cmd"; c.textContent = s.cmd;
+      line.appendChild(p); line.appendChild(c);
+      s.out.forEach(function (o) { addLine("out").textContent = o; });
+      var idle = addLine();
+      var ip = document.createElement("span"); ip.className = "p"; ip.textContent = s.prompt + " ";
+      var cur = document.createElement("span"); cur.className = "cursor";
+      idle.appendChild(ip); idle.appendChild(cur);
+    }
+
+    async function run() {
+      var idx = 0;
+      while (true) {
+        var s = script[idx % script.length];
+        frontTitle.textContent = s.title;
+        var line = addLine();
+        var p = document.createElement("span"); p.className = "p"; p.textContent = s.prompt + " ";
+        var c = document.createElement("span"); c.className = "cmd";
+        var cur = document.createElement("span"); cur.className = "cursor";
+        line.appendChild(p); line.appendChild(c); line.appendChild(cur);
+        front.scrollTop = front.scrollHeight;
+
+        for (var i = 0; i < s.cmd.length; i++) {
+          c.textContent += s.cmd[i];
+          front.scrollTop = front.scrollHeight;
+          await sleep(rand(30, 95));
+        }
+        await sleep(rand(340, 680));
+        cur.remove();
+
+        for (var j = 0; j < s.out.length; j++) {
+          addLine("out").textContent = s.out[j];
+          front.scrollTop = front.scrollHeight;
+          await sleep(rand(30, 110));
+        }
+        trim();
+
+        var idle = addLine();
+        var ip = document.createElement("span"); ip.className = "p"; ip.textContent = s.prompt + " ";
+        var icur = document.createElement("span"); icur.className = "cursor";
+        idle.appendChild(ip); idle.appendChild(icur);
+        front.scrollTop = front.scrollHeight;
+
+        await sleep(rand(1600, 2600));
+        idx++;
+      }
+    }
+
+    if (reduce) { renderStatic(); } else { run(); }
+  })();
+</script>
+
+</body>
+</html>

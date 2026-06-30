@@ -35,18 +35,31 @@ all: bundle
 
 # ─────────────────────────────────────────────
 build:
-	@echo "$(BLUE)▶ Compiling Swift sources...$(NC)"
+	@echo "$(BLUE)▶ Compiling Swift sources (universal: arm64 + x86_64)...$(NC)"
 	@mkdir -p $(BUILD_DIR)
-	$(SWIFTC) \
+	@$(SWIFTC) \
 		-module-name $(MODULE_NAME) \
 		-target arm64-apple-macosx$(MIN_MACOS) \
 		-sdk $(SDK) \
 		$(FRAMEWORKS) \
-		-Onone \
+		-O \
 		-emit-library \
-		-o $(BUILD_DIR)/$(PRODUCT_NAME) \
+		-o $(BUILD_DIR)/$(PRODUCT_NAME)-arm64 \
 		$(SWIFT_FILES)
-	@echo "$(GREEN)✓ Compilation successful$(NC)"
+	@$(SWIFTC) \
+		-module-name $(MODULE_NAME) \
+		-target x86_64-apple-macosx$(MIN_MACOS) \
+		-sdk $(SDK) \
+		$(FRAMEWORKS) \
+		-O \
+		-emit-library \
+		-o $(BUILD_DIR)/$(PRODUCT_NAME)-x86_64 \
+		$(SWIFT_FILES)
+	@lipo -create \
+		-output $(BUILD_DIR)/$(PRODUCT_NAME) \
+		$(BUILD_DIR)/$(PRODUCT_NAME)-arm64 \
+		$(BUILD_DIR)/$(PRODUCT_NAME)-x86_64
+	@echo "$(GREEN)✓ Compilation successful (universal binary)$(NC)"
 
 # ─────────────────────────────────────────────
 bundle: build
@@ -54,6 +67,8 @@ bundle: build
 	@mkdir -p $(MACOS_DIR) $(RES_DIR)
 	@cp $(BUILD_DIR)/$(PRODUCT_NAME) $(MACOS_DIR)/$(PRODUCT_NAME)
 	@cp Resources/Info.plist $(BUNDLE_DIR)/Contents/Info.plist
+	@echo "$(BLUE)▶ Ad-hoc signing bundle...$(NC)"
+	@codesign --force --deep --sign - $(BUNDLE_DIR)
 	@echo "$(GREEN)✓ Bundle created at: $(BUNDLE_DIR)$(NC)"
 
 # ─────────────────────────────────────────────

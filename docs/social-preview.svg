@@ -1,0 +1,84 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="640" viewBox="0 0 1280 640" font-family="Menlo, 'DejaVu Sans Mono', 'SF Mono', monospace">
+  <defs>
+    <radialGradient id="bgGlow" cx="34%" cy="12%" r="90%">
+      <stop offset="0%" stop-color="#0f2413"/>
+      <stop offset="55%" stop-color="#081109"/>
+      <stop offset="100%" stop-color="#050805"/>
+    </radialGradient>
+    <radialGradient id="vign" cx="50%" cy="46%" r="75%">
+      <stop offset="55%" stop-color="#000000" stop-opacity="0"/>
+      <stop offset="100%" stop-color="#000000" stop-opacity="0.55"/>
+    </radialGradient>
+    <radialGradient id="termGlow" cx="50%" cy="42%" r="65%">
+      <stop offset="0%" stop-color="#2bff87" stop-opacity="0.22"/>
+      <stop offset="100%" stop-color="#2bff87" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="titlebar" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#12200f"/>
+      <stop offset="100%" stop-color="#0b140c"/>
+    </linearGradient>
+    <pattern id="scan" width="4" height="4" patternUnits="userSpaceOnUse">
+      <rect y="2.4" width="4" height="1" fill="#000000" opacity="0.20"/>
+    </pattern>
+    <filter id="soft" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="7"/>
+    </filter>
+  </defs>
+
+  <!-- background -->
+  <rect width="1280" height="640" fill="url(#bgGlow)"/>
+
+  <!-- terminal glow -->
+  <rect x="710" y="132" width="520" height="360" rx="60" fill="url(#termGlow)" filter="url(#soft)"/>
+
+  <!-- ===== Left: title block ===== -->
+  <text x="92" y="148" fill="#2bff87" font-size="24" letter-spacing="1">
+    <tspan fill="#2bff87">&#9646;</tspan><tspan fill="#7fb894"> terminal-screensaver</tspan>
+  </text>
+
+  <text x="90" y="288" fill="#2bff87" font-size="82" font-weight="700" letter-spacing="-1">Terminal</text>
+  <text x="92" y="378" fill="#e6f5ea" font-size="82" font-weight="700" letter-spacing="-1">Screen Saver</text>
+
+  <text x="92" y="500" fill="#a6e6bb" font-size="30">Living terminal windows for your idle Mac.</text>
+  <text x="92" y="542" fill="#5e7d66" font-size="22">git &#183; docker &#183; kubernetes &#183; npm &#183; rust &#183; aws &#183; 8 themes</text>
+
+  <!-- theme dots + license -->
+  <g>
+    <circle cx="102" cy="584" r="9" fill="#00ff5a"/>
+    <circle cx="130" cy="584" r="9" fill="#ffbe4d"/>
+    <circle cx="158" cy="584" r="9" fill="#ffffff"/>
+    <circle cx="186" cy="584" r="9" fill="#93a100"/>
+    <circle cx="214" cy="584" r="9" fill="#f92672"/>
+    <circle cx="242" cy="584" r="9" fill="#bd93f9"/>
+    <circle cx="270" cy="584" r="9" fill="#88c0d0"/>
+    <circle cx="298" cy="584" r="9" fill="#4dd8ff"/>
+    <text x="326" y="590" fill="#5e7d66" font-size="19">macOS 12+ &#183; free &amp; open source (MIT)</text>
+  </g>
+
+  <!-- ===== Right: terminal window ===== -->
+  <g>
+    <rect x="732" y="150" width="468" height="316" rx="14" fill="#0b120b" stroke="#1c8f4e" stroke-opacity="0.5" stroke-width="1.5"/>
+    <!-- title bar -->
+    <path d="M732 164 a14 14 0 0 1 14 -14 h440 a14 14 0 0 1 14 14 v28 h-468 z" fill="url(#titlebar)"/>
+    <line x1="732" y1="192" x2="1200" y2="192" stroke="#0f2916" stroke-width="1"/>
+    <circle cx="756" cy="178" r="6.5" fill="#ff5f57"/>
+    <circle cx="778" cy="178" r="6.5" fill="#febc2e"/>
+    <circle cx="800" cy="178" r="6.5" fill="#28c840"/>
+    <text x="966" y="183" fill="#5e7d66" font-size="16" text-anchor="middle">bash &#8212; ~/webapp</text>
+
+    <!-- body -->
+    <g font-size="18.5">
+      <text x="754" y="238" xml:space="preserve"><tspan fill="#58ffa0">dev@macbook:~/webapp$</tspan><tspan fill="#ffffff"> git status</tspan></text>
+      <text x="754" y="268" fill="#1c8f4e">On branch main</text>
+      <text x="754" y="298" fill="#1c8f4e">Changes not staged for commit:</text>
+      <text x="754" y="328" fill="#1c8f4e" xml:space="preserve">  modified:   src/auth.ts</text>
+      <text x="754" y="358" fill="#1c8f4e" xml:space="preserve">  modified:   api/routes.py</text>
+      <text x="754" y="412" fill="#58ffa0">dev@macbook:~/webapp$</text>
+      <rect x="990" y="398" width="11" height="20" fill="#2bff87"/>
+    </g>
+  </g>
+
+  <!-- scanlines + vignette overlays -->
+  <rect width="1280" height="640" fill="url(#scan)"/>
+  <rect width="1280" height="640" fill="url(#vign)"/>
+</svg>

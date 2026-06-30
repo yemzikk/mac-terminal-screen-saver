@@ -2,6 +2,8 @@
 
 A macOS screen saver that fills your screen with animated terminal windows running realistic fake commands — git logs, docker builds, kubernetes rollouts, npm installs, SQL queries, Rust cargo, AWS CLI, and more.
 
+🌐 **[Website & live demo →](https://yemzikk.github.io/mac-terminal-screen-saver/)** &middot; ☕ **[Buy me a coffee](https://buymeacoffee.com/yemzikk)**
+
 ## Features
 
 - **Multiple terminal windows** — 1–8 windows, arranged in automatic grid layouts
@@ -37,30 +39,20 @@ A macOS screen saver that fills your screen with animated terminal windows runni
 
 ## Installation
 
-### Easiest: Download Pre-built Release
+### Recommended: Build from Source
 
-1. Go to [Releases](https://github.com/yemzikk/mac-terminal-screen-saver/releases)
-2. Download either:
-   - **TerminalScreenSaver.dmg** — macOS disk image (recommended, same as standard app installers)
-   - **TerminalScreenSaver.saver.zip** — compressed bundle
-3. If you downloaded the DMG, double-click it and drag `TerminalScreenSaver.saver` to your screensaver folder, or just double-click the bundle
-4. If you downloaded the ZIP, unzip and double-click `TerminalScreenSaver.saver`
-5. Click **Install** when prompted by System Preferences
-
-The screensaver will be installed to `~/Library/Screen Savers/`
-
-### Build from Source
-
-## Build & Install
+Locally-built bundles aren't quarantined by Gatekeeper, so this is the smoothest install:
 
 ```bash
-# Clone / open the project folder, then:
+git clone https://github.com/yemzikk/mac-terminal-screen-saver.git
+cd mac-terminal-screen-saver
 make install
 ```
 
-This compiles the Swift sources and copies `TerminalScreenSaver.saver` to `~/Library/Screen Savers/`.
+This compiles a universal (Apple Silicon + Intel) binary and copies `TerminalScreenSaver.saver`
+to `~/Library/Screen Savers/`.
 
-### Other build targets
+Other build targets:
 
 ```bash
 make              # build .saver bundle only (no install)
@@ -69,6 +61,42 @@ make install-system   # build + install system-wide (sudo)
 make clean        # remove build/ directory
 make uninstall    # remove from ~/Library/Screen Savers
 ```
+
+### Download a Pre-built Release
+
+1. Go to [Releases](https://github.com/yemzikk/mac-terminal-screen-saver/releases)
+2. Download either:
+   - **TerminalScreenSaver.dmg** — macOS disk image
+   - **TerminalScreenSaver.saver.zip** — compressed bundle
+3. Unzip / open the DMG and double-click `TerminalScreenSaver.saver`, then click **Install**
+
+The screensaver installs to `~/Library/Screen Savers/`.
+
+> **Gatekeeper note:** Released bundles are **ad-hoc signed but not notarized** (no paid Apple
+> Developer account). Because they're downloaded from the internet, macOS quarantines them and may
+> refuse to load the saver or warn about an "unidentified developer." To clear the quarantine flag:
+>
+> ```bash
+> xattr -dr com.apple.quarantine ~/Downloads/TerminalScreenSaver.saver
+> ```
+>
+> (adjust the path to wherever the `.saver` ended up), then double-click it again.
+> Building from source avoids this entirely.
+
+### Homebrew (tap)
+
+If a tap is published, you can install via:
+
+```bash
+brew tap yemzikk/tap
+brew install --cask --no-quarantine terminal-screensaver
+```
+
+`--no-quarantine` is needed because the bundle is ad-hoc signed but not notarized.
+Setup instructions for publishing the tap live in
+[packaging/homebrew/README.md](packaging/homebrew/README.md).
+
+> Not available in the main `homebrew/cask` repo, which requires notarized bundles.
 
 ## Activate
 

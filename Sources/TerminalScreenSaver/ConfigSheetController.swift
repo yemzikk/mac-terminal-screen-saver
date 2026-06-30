@@ -416,14 +416,20 @@ class ConfigSheetController: NSWindowController {
 
     @objc private func okClicked() {
         saveSettings()
+        miniPreview.stopAnimating()
         guard let sheet = window else { return }
         sheet.sheetParent?.endSheet(sheet)
         onDismiss?()
     }
 
     @objc private func cancelClicked() {
+        miniPreview.stopAnimating()
         guard let sheet = window else { return }
         sheet.sheetParent?.endSheet(sheet)
+    }
+
+    deinit {
+        miniPreview?.stopAnimating()  // tear down preview timers on any dismiss path
     }
 
     @objc private func countChanged() {

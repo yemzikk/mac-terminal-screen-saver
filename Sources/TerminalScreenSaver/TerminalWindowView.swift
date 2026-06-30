@@ -43,14 +43,11 @@ class TerminalWindowView: NSView {
     // MARK: - Animation state
     private var lines: [TerminalLine] = []
     private var commandQueue: [TerminalCommand] = []
-    private var session: TerminalSession?
     private var state: CursorState = .idle
     private var cursorVisible: Bool = true
     private var cursorBlinkTimer: Timer?
     private var animationTimer: Timer?
-    private var typingIndex: Int = 0  // character index being typed
     private var outputLineIndex: Int = 0
-    private var forceRedraw: Bool = false
 
     // MARK: - Realism effects state
     /// Subtle layer opacity flicker simulating phosphor/CRT power variation
@@ -83,9 +80,8 @@ class TerminalWindowView: NSView {
 
     func startNewSession() {
         let s = CommandDatabase.randomSession()
-        session = s
         sessionTitle = s.title
-        commandQueue = s.commands.shuffled().isEmpty ? s.commands : Array(s.commands)
+        commandQueue = s.commands
         lines = []
         // Add a few blank startup lines
         lines.append(TerminalLine(text: "", kind: .blank))
@@ -110,6 +106,7 @@ class TerminalWindowView: NSView {
         animationTimer = nil
         flickerTimer?.invalidate()
         flickerTimer = nil
+        layer?.opacity = 1.0  // clear any residual flicker dimming
     }
 
     // MARK: - Phosphor Flicker
@@ -171,7 +168,6 @@ class TerminalWindowView: NSView {
         lines.append(TerminalLine(text: cmd.prompt + " ", kind: .prompt))
         lines.append(TerminalLine(text: "", kind: .command, isPartial: true))
         state = .typing
-        typingIndex = 0
         pruneLines()
         setNeedsDisplay(bounds)
         scheduleTyping(command: cmd.command, output: cmd.output)

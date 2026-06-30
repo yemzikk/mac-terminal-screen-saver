@@ -16,7 +16,10 @@ jobs:
       
       - name: Build and bundle
         run: make bundle
-      
+
+      - name: Verify ad-hoc signature
+        run: codesign -dv build/TerminalScreenSaver.saver
+
       - name: Create zip artifact
         run: cd build && zip -r TerminalScreenSaver.saver.zip TerminalScreenSaver.saver/
       

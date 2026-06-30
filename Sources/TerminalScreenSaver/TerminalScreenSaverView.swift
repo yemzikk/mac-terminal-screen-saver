@@ -9,7 +9,6 @@ public class TerminalScreenSaverView: ScreenSaverView {
 
     private var terminalViews: [TerminalWindowView] = []
     private var configSheet: ConfigSheetController?
-    private var backgroundView: NSView?
 
     // MARK: - Init
 
@@ -42,9 +41,7 @@ public class TerminalScreenSaverView: ScreenSaverView {
     }
 
     public override func animateOneFrame() {
-        // Individual terminal views handle their own animation timers.
-        // This is just a safety redraw tick.
-        setNeedsDisplay(bounds)
+        // Terminals redraw on their own timers; the background is static.
     }
 
     public override func draw(_ rect: NSRect) {
@@ -169,15 +166,6 @@ public class TerminalScreenSaverView: ScreenSaverView {
             NSRect(x: rect.minX, y: rect.minY, width: w, height: rect.height),
             NSRect(x: rect.minX + w + padding, y: rect.minY, width: w, height: rect.height),
         ]
-    }
-
-    private func splitVertical(_ rect: NSRect, ratio: CGFloat, padding: CGFloat) -> (NSRect, NSRect)
-    {
-        let topH = rect.height * ratio - padding / 2
-        let botH = rect.height - topH - padding
-        let top = NSRect(x: rect.minX, y: rect.maxY - topH, width: rect.width, height: topH)
-        let bot = NSRect(x: rect.minX, y: rect.minY, width: rect.width, height: botH)
-        return (top, bot)
     }
 
     private func grid(_ rect: NSRect, cols: Int, rows: Int, padding: CGFloat) -> [NSRect] {
