@@ -1,5 +1,5 @@
 cask "terminal-screensaver" do
-  version "1.0"
+  version "1.0.3"
 
   # Update this after each release: shasum -a 256 TerminalScreenSaver.saver.zip
   # For a personal tap you may instead use `sha256 :no_check` (skips verification).
