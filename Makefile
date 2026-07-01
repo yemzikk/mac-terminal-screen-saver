@@ -67,6 +67,7 @@ bundle: build
 	@mkdir -p $(MACOS_DIR) $(RES_DIR)
 	@cp $(BUILD_DIR)/$(PRODUCT_NAME) $(MACOS_DIR)/$(PRODUCT_NAME)
 	@cp Resources/Info.plist $(BUNDLE_DIR)/Contents/Info.plist
+	@cp Resources/thumbnail.png Resources/thumbnail@2x.png $(RES_DIR)/
 	@echo "$(BLUE)▶ Ad-hoc signing bundle...$(NC)"
 	@codesign --force --deep --sign - $(BUNDLE_DIR)
 	@echo "$(GREEN)✓ Bundle created at: $(BUNDLE_DIR)$(NC)"
