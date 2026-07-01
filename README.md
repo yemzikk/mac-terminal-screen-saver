@@ -121,6 +121,22 @@ Setup instructions for publishing the tap live in
 | **Blinking Cursor** | Block cursor blinking |
 | **Window Shadow** | Outer glow shadow |
 
+## Releasing (maintainers)
+
+One-click: **Actions → Bump & Release → Run workflow**. Pick a bump level
+(patch/minor/major) or type an explicit version. It bumps `Info.plist` and the
+Homebrew cask, commits, tags `vX.Y.Z`, then builds, publishes the GitHub Release
+(`.dmg` + `.zip`), and updates the Homebrew tap.
+
+From the CLI: `gh workflow run "Bump & Release" -f level=patch`
+(or `-f version=1.2.0`).
+
+Prefer to tag by hand? Pushing any `v*` tag also triggers the release build:
+
+```bash
+git tag -a v1.2.0 -m "Release v1.2.0" && git push origin v1.2.0
+```
+
 ## Project Structure
 
 ```

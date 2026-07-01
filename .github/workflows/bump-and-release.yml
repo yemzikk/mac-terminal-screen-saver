@@ -1,0 +1,111 @@
+name: Bump & Release
+
+# Manual, one-click release. Run from the Actions tab (or `gh workflow run`):
+#   - pick a bump level (patch/minor/major), or
+#   - type an explicit version to override it.
+# Bumps Info.plist + the Homebrew cask, commits, tags vX.Y.Z, and hands off
+# to the Release workflow (build → GitHub Release → tap update).
+
+on:
+  workflow_dispatch:
+    inputs:
+      level:
+        description: "Version bump (ignored if 'version' is set)"
+        type: choice
+        options: [patch, minor, major]
+        default: patch
+      version:
+        description: "Explicit version, e.g. 1.0.6 (optional)"
+        type: string
+        required: false
+
+permissions:
+  contents: write
+
+jobs:
+  bump:
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.v.outputs.tag }}
+      version: ${{ steps.v.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Bump version files
+        id: v
+        env:
+          LEVEL: ${{ inputs.level }}
+          EXPLICIT: ${{ inputs.version }}
+        run: |
+          python3 - <<'PY'
+          import plistlib, os, re
+
+          plist_path = "Resources/Info.plist"
+          with open(plist_path, "rb") as f:
+              pl = plistlib.load(f)
+
+          cur = pl.get("CFBundleShortVersionString", "0.0.0")
+          explicit = os.environ.get("EXPLICIT", "").strip().lstrip("v")
+          level = os.environ.get("LEVEL", "patch")
+
+          if explicit:
+              new = explicit
+          else:
+              nums = [int(x) for x in re.findall(r"\d+", cur)]
+              while len(nums) < 3:
+                  nums.append(0)
+              maj, minr, pat = nums[:3]
+              if level == "major":
+                  maj, minr, pat = maj + 1, 0, 0
+              elif level == "minor":
+                  minr, pat = minr + 1, 0
+              else:
+                  pat += 1
+              new = f"{maj}.{minr}.{pat}"
+
+          try:
+              bv = int(str(pl.get("CFBundleVersion", "0"))) + 1
+          except ValueError:
+              bv = 1
+
+          pl["CFBundleShortVersionString"] = new
+          pl["CFBundleVersion"] = str(bv)
+          with open(plist_path, "wb") as f:
+              plistlib.dump(pl, f, sort_keys=False)
+
+          cask = "packaging/homebrew/terminal-screensaver.rb"
+          s = open(cask).read()
+          s = re.sub(r'^(  version )"[^"]*"', rf'\1"{new}"', s, count=1, flags=re.M)
+          open(cask, "w").write(s)
+
+          with open(os.environ["GITHUB_OUTPUT"], "a") as out:
+              out.write(f"version={new}\n")
+              out.write(f"tag=v{new}\n")
+          print(f"Bumped {cur} -> {new} (build {bv})")
+          PY
+
+      - name: Guard against existing tag
+        run: |
+          TAG="${{ steps.v.outputs.tag }}"
+          if git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null 2>&1; then
+            echo "::error::Tag $TAG already exists — pick a different version."
+            exit 1
+          fi
+
+      - name: Commit, tag, push
+        run: |
+          TAG="${{ steps.v.outputs.tag }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Resources/Info.plist packaging/homebrew/terminal-screensaver.rb
+          git commit -m "Bump version to ${{ steps.v.outputs.version }}"
+          git tag -a "$TAG" -m "Release $TAG"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
+          git push origin "$TAG"
+
+  release:
+    needs: bump
+    uses: ./.github/workflows/release.yml
+    with:
+      tag: ${{ needs.bump.outputs.tag }}
+    secrets: inherit

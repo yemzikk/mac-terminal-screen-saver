@@ -4,6 +4,12 @@ on:
   push:
     tags:
       - 'v*'
+  workflow_call:
+    inputs:
+      tag:
+        description: Tag to build and release (e.g. v1.0.6)
+        type: string
+        required: true
 
 permissions:
   contents: write
@@ -12,8 +18,18 @@ jobs:
   build:
     runs-on: macos-latest
     steps:
+      - name: Resolve tag
+        id: rel
+        run: |
+          TAG="${{ inputs.tag }}"
+          [ -z "$TAG" ] && TAG="${GITHUB_REF_NAME}"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "version=${TAG#v}" >> "$GITHUB_OUTPUT"
+
       - uses: actions/checkout@v4
-      
+        with:
+          ref: ${{ steps.rel.outputs.tag }}
+
       - name: Build and bundle
         run: make bundle
 
@@ -22,7 +38,7 @@ jobs:
 
       - name: Create zip artifact
         run: cd build && zip -r TerminalScreenSaver.saver.zip TerminalScreenSaver.saver/
-      
+
       - name: Create DMG
         run: |
           mkdir -p dmg-temp
@@ -31,10 +47,11 @@ jobs:
             -srcfolder dmg-temp \
             -ov -format UDZO \
             build/TerminalScreenSaver.dmg
-      
+
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
+          tag_name: ${{ steps.rel.outputs.tag }}
           files: |
             build/TerminalScreenSaver.saver.zip
             build/TerminalScreenSaver.dmg
@@ -61,9 +78,20 @@ jobs:
             echo "HOMEBREW_TAP_TOKEN not set — skipping tap update."
           fi
 
+      - name: Resolve tag
+        if: steps.gate.outputs.ok == 'true'
+        id: rel
+        run: |
+          TAG="${{ inputs.tag }}"
+          [ -z "$TAG" ] && TAG="${GITHUB_REF_NAME}"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "version=${TAG#v}" >> "$GITHUB_OUTPUT"
+
       - name: Check out this repo (cask template)
         if: steps.gate.outputs.ok == 'true'
         uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.rel.outputs.tag }}
 
       - name: Check out Homebrew tap
         if: steps.gate.outputs.ok == 'true'
@@ -75,10 +103,12 @@ jobs:
 
       - name: Render cask with version + checksum
         if: steps.gate.outputs.ok == 'true'
+        env:
+          TAG: ${{ steps.rel.outputs.tag }}
+          VERSION: ${{ steps.rel.outputs.version }}
         run: |
           set -euo pipefail
-          VERSION="${GITHUB_REF_NAME#v}"
-          URL="https://github.com/${GITHUB_REPOSITORY}/releases/download/${GITHUB_REF_NAME}/TerminalScreenSaver.saver.zip"
+          URL="https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/TerminalScreenSaver.saver.zip"
           echo "Fetching $URL"
           for i in $(seq 1 12); do
             code=$(curl -sL -o app.zip -w '%{http_code}' "$URL" || true)
@@ -95,6 +125,8 @@ jobs:
 
       - name: Commit & push to tap
         if: steps.gate.outputs.ok == 'true'
+        env:
+          TAG: ${{ steps.rel.outputs.tag }}
         run: |
           cd tap
           git config user.name "github-actions[bot]"
@@ -103,6 +135,6 @@ jobs:
           if git diff --cached --quiet; then
             echo "Cask already up to date."
           else
-            git commit -m "terminal-screensaver ${GITHUB_REF_NAME#v}"
+            git commit -m "terminal-screensaver ${TAG#v}"
             git push
           fi
