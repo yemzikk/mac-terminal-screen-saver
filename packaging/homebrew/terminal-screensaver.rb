@@ -3,7 +3,7 @@ cask "terminal-screensaver" do
 
   # Update this after each release: shasum -a 256 TerminalScreenSaver.saver.zip
   # For a personal tap you may instead use `sha256 :no_check` (skips verification).
-  sha256 "REPLACE_WITH_SHA256_OF_RELEASE_ZIP"
+  sha256 "9bb51d44aa360a745d78cff33cb648173fdea18b32df8321bca5418e56b38f69"
 
   url "https://github.com/yemzikk/mac-terminal-screen-saver/releases/download/v#{version}/TerminalScreenSaver.saver.zip"
   name "Terminal Screen Saver"
