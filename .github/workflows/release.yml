@@ -40,3 +40,69 @@ jobs:
             build/TerminalScreenSaver.dmg
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # Publishes an updated Homebrew cask to the tap repo on every release.
+  # Requires a repo secret HOMEBREW_TAP_TOKEN: a fine-grained PAT with
+  # Contents: read/write on <owner>/homebrew-tap. If the secret is absent,
+  # this job skips cleanly (setup steps in packaging/homebrew/README.md).
+  update-tap:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check for tap token
+        id: gate
+        env:
+          TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+        run: |
+          if [ -n "$TAP_TOKEN" ]; then
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+            echo "HOMEBREW_TAP_TOKEN not set — skipping tap update."
+          fi
+
+      - name: Check out this repo (cask template)
+        if: steps.gate.outputs.ok == 'true'
+        uses: actions/checkout@v4
+
+      - name: Check out Homebrew tap
+        if: steps.gate.outputs.ok == 'true'
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/homebrew-tap
+          token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          path: tap
+
+      - name: Render cask with version + checksum
+        if: steps.gate.outputs.ok == 'true'
+        run: |
+          set -euo pipefail
+          VERSION="${GITHUB_REF_NAME#v}"
+          URL="https://github.com/${GITHUB_REPOSITORY}/releases/download/${GITHUB_REF_NAME}/TerminalScreenSaver.saver.zip"
+          echo "Fetching $URL"
+          for i in $(seq 1 12); do
+            code=$(curl -sL -o app.zip -w '%{http_code}' "$URL" || true)
+            if [ "$code" = "200" ] && [ -s app.zip ]; then break; fi
+            echo "attempt $i: HTTP $code — retrying in 6s"; sleep 6
+          done
+          SHA=$(shasum -a 256 app.zip | awk '{print $1}')
+          echo "version=$VERSION sha256=$SHA"
+          mkdir -p tap/Casks
+          sed -E \
+            -e "s/^  version \".*\"/  version \"${VERSION}\"/" \
+            -e "s#^  sha256 \".*\"#  sha256 \"${SHA}\"#" \
+            packaging/homebrew/terminal-screensaver.rb > tap/Casks/terminal-screensaver.rb
+
+      - name: Commit & push to tap
+        if: steps.gate.outputs.ok == 'true'
+        run: |
+          cd tap
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Casks/terminal-screensaver.rb
+          if git diff --cached --quiet; then
+            echo "Cask already up to date."
+          else
+            git commit -m "terminal-screensaver ${GITHUB_REF_NAME#v}"
+            git push
+          fi
