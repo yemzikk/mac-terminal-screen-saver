@@ -26,7 +26,7 @@ jobs:
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
           echo "version=${TAG#v}" >> "$GITHUB_OUTPUT"
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           ref: ${{ steps.rel.outputs.tag }}
 
@@ -49,7 +49,7 @@ jobs:
             build/TerminalScreenSaver.dmg
 
       - name: Create Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.rel.outputs.tag }}
           files: |
@@ -89,17 +89,9 @@ jobs:
 
       - name: Check out this repo (cask template)
         if: steps.gate.outputs.ok == 'true'
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: ${{ steps.rel.outputs.tag }}
-
-      - name: Check out Homebrew tap
-        if: steps.gate.outputs.ok == 'true'
-        uses: actions/checkout@v4
-        with:
-          repository: ${{ github.repository_owner }}/homebrew-tap
-          token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
-          path: tap
 
       - name: Render cask with version + checksum
         if: steps.gate.outputs.ok == 'true'
@@ -117,24 +109,36 @@ jobs:
           done
           SHA=$(shasum -a 256 app.zip | awk '{print $1}')
           echo "version=$VERSION sha256=$SHA"
-          mkdir -p tap/Casks
           sed -E \
             -e "s/^  version \".*\"/  version \"${VERSION}\"/" \
             -e "s#^  sha256 \".*\"#  sha256 \"${SHA}\"#" \
-            packaging/homebrew/terminal-screensaver.rb > tap/Casks/terminal-screensaver.rb
+            packaging/homebrew/terminal-screensaver.rb > "${RUNNER_TEMP}/terminal-screensaver.rb"
 
-      - name: Commit & push to tap
+      # Push directly with git so a brand-new, empty tap repo (no main branch
+      # yet) is initialized rather than failing an actions/checkout.
+      - name: Publish cask to tap
         if: steps.gate.outputs.ok == 'true'
         env:
+          TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
           TAG: ${{ steps.rel.outputs.tag }}
         run: |
-          cd tap
+          set -euo pipefail
+          OWNER="${{ github.repository_owner }}"
+          rm -rf tap && mkdir tap && cd tap
+          git init -q -b main
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git remote add origin "https://x-access-token:${TAP_TOKEN}@github.com/${OWNER}/homebrew-tap.git"
+          if git ls-remote --exit-code --heads origin main >/dev/null 2>&1; then
+            git fetch --depth=1 origin main
+            git reset --hard origin/main
+          fi
+          mkdir -p Casks
+          cp "${RUNNER_TEMP}/terminal-screensaver.rb" Casks/terminal-screensaver.rb
           git add Casks/terminal-screensaver.rb
           if git diff --cached --quiet; then
             echo "Cask already up to date."
           else
             git commit -m "terminal-screensaver ${TAG#v}"
-            git push
+            git push origin main
           fi
